@@ -308,18 +308,34 @@ async def begin_import(config: dict, pagination_limit: int) -> dict:
         api_hash=config["api_hash"],
         proxy=config.get("proxy"),
     )
+
     await client.start()
+
+    # rev_message = []
+    # async for message in client.get_chat_history(config['chat_id']):
+        # rev_message.append(message.caption)
+        # print(message.caption)
+
+    # rev_message.reverse()
+    # for message in rev_message:
+        # print(message);
+
+    # exit(1);
+
     last_read_message_id: int = config["last_read_message_id"]
     messages_iter = client.get_chat_history(
-        config["chat_id"], offset_id=last_read_message_id, reverse=True
+        config["chat_id"], offset_id=last_read_message_id
     )
+
     messages_list: list = []
     pagination_count: int = 0
+
     if config["ids_to_retry"]:
         logger.info("Downloading files failed during last run...")
         skipped_messages: list = await client.get_messages(  # type: ignore
             chat_id=config["chat_id"], message_ids=config["ids_to_retry"]
         )
+
         for message in skipped_messages:
             pagination_count += 1
             messages_list.append(message)
@@ -335,11 +351,14 @@ async def begin_import(config: dict, pagination_limit: int) -> dict:
                 config["media_types"],
                 config["file_formats"],
             )
+
             pagination_count = 0
             messages_list = []
             messages_list.append(message)
             config["last_read_message_id"] = last_read_message_id
+
             update_config(config)
+
     if messages_list:
         last_read_message_id = await process_messages(
             client,
@@ -357,9 +376,11 @@ def main():
     """Main function of the downloader."""
     with open(os.path.join(THIS_DIR, "config.yaml")) as f:
         config = yaml.safe_load(f)
+
     updated_config = asyncio.get_event_loop().run_until_complete(
-        begin_import(config, pagination_limit=100)
+        begin_import(config, pagination_limit=1)
     )
+
     if FAILED_IDS:
         logger.info(
             "Downloading of %d files failed. "
